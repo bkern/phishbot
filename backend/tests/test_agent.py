@@ -82,3 +82,10 @@ def test_run_query_deduplicates_sources():
         result = run_query("anything")
 
     assert result["sources"].count("setlist.fm") == 1
+
+
+def test_agent_dispatch_includes_phishnet_tools():
+    import agent
+    assert "get_jamcharts" in agent.TOOL_DISPATCH
+    assert "get_song_history" in agent.TOOL_DISPATCH
+    assert "search_setlists" in agent.TOOL_DISPATCH

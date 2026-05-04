@@ -1,19 +1,23 @@
 import json
 import anthropic
-from tools.setlistfm import TOOL_DEFINITION, search_setlists
+from tools.setlistfm import TOOL_DEFINITION as SETLISTFM_TOOL, search_setlists
+from tools.phishnet import JAMCHARTS_TOOL, SONG_HISTORY_TOOL, get_jamcharts, get_song_history
 
 client = anthropic.Anthropic()
 
 TOOL_DISPATCH = {
     "search_setlists": search_setlists,
+    "get_jamcharts": get_jamcharts,
+    "get_song_history": get_song_history,
 }
 
 SYSTEM_PROMPT = (
     "You are PhishBot, an expert on Phish's concert history. "
-    "Use the search_setlists tool to look up setlist data before answering. "
-    "Be specific: cite dates, venues, and counts when you have them. "
-    "If a question requires data you don't have access to (e.g. song durations, jam lengths), "
-    "say so clearly — that data isn't in setlist.fm."
+    "You have three tools — use the most appropriate one:\n"
+    "- search_setlists: when/where was a song played, show openers/closers, setlist queries\n"
+    "- get_jamcharts: best or longest versions of a song, notable jams, must-hear performances\n"
+    "- get_song_history: a song's origins, story, background, or lyrics\n"
+    "Be specific: cite dates, venues, durations, and counts when you have them."
 )
 
 
@@ -26,7 +30,7 @@ def run_query(question: str) -> dict:
             model="claude-sonnet-4-6",
             max_tokens=1024,
             system=SYSTEM_PROMPT,
-            tools=[TOOL_DEFINITION],
+            tools=[SETLISTFM_TOOL, JAMCHARTS_TOOL, SONG_HISTORY_TOOL],
             messages=messages,
         )
 
