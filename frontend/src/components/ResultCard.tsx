@@ -27,14 +27,18 @@ export function ResultCard({ question, answer, sources, loading }: Props) {
 
       <div className="px-4 py-5 min-h-16">
         {loading ? (
-          <div
-            className="h-0.5 rounded-full"
-            style={{
-              background: 'linear-gradient(90deg, #111 0%, #00c9a0 50%, #111 100%)',
-              backgroundSize: '200% 100%',
-              animation: 'shimmer 1.5s infinite',
-            }}
-          />
+          <>
+            {/* shimmer keyframe defined in src/index.css */}
+            <div
+              data-testid="shimmer-bar"
+              className="h-0.5 rounded-full"
+              style={{
+                background: 'linear-gradient(90deg, #111 0%, #00c9a0 50%, #111 100%)',
+                backgroundSize: '200% 100%',
+                animation: 'shimmer 1.5s infinite',
+              }}
+            />
+          </>
         ) : (
           <p className="text-[15px] text-[#ccc] leading-relaxed">{answer}</p>
         )}

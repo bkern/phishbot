@@ -58,3 +58,10 @@ test('shows ANSWER label when not loading', () => {
   )
   expect(screen.getByText('ANSWER')).toBeInTheDocument()
 })
+
+test('renders shimmer bar in body when loading', () => {
+  render(
+    <ResultCard question="test" answer="" sources={[]} loading={true} />
+  )
+  expect(screen.getByTestId('shimmer-bar')).toBeInTheDocument()
+})
