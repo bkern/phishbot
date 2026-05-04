@@ -8,6 +8,10 @@ backend/.env
 # Node
 frontend/node_modules/
 frontend/dist/
+frontend/.env*
+
+# Env files (any level)
+.env
 
 # Misc
 .DS_Store
