@@ -153,3 +153,33 @@ def test_get_song_history_returns_not_found_when_empty():
         result = get_song_history(song="Nonexistent XYZ")
     assert result["song"] is None
     assert result["history"] is None
+
+
+def test_get_jamcharts_includes_set_field():
+    from tools.phishnet import get_jamcharts
+
+    with patch("tools.phishnet.httpx.get", return_value=_mock_response(SAMPLE_JAMCHART_DATA)):
+        result = get_jamcharts(song="Tweezer")
+    assert result["jams"][0]["set"] == "2"
+
+
+def test_get_jamcharts_includes_total():
+    from tools.phishnet import get_jamcharts
+
+    with patch("tools.phishnet.httpx.get", return_value=_mock_response(SAMPLE_JAMCHART_DATA, total=47)):
+        result = get_jamcharts(song="Tweezer")
+    assert result["total"] == 47
+
+
+def test_song_to_slug_strips_segue_notation():
+    from tools.phishnet import _song_to_slug
+
+    assert _song_to_slug("Tweezer > Lifeboy") == "tweezer"
+
+
+def test_get_song_history_not_found_includes_source():
+    from tools.phishnet import get_song_history
+
+    with patch("tools.phishnet.httpx.get", return_value=_mock_response([])):
+        result = get_song_history(song="Nonexistent XYZ")
+    assert result["source"] == "phish.net"

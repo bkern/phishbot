@@ -43,6 +43,8 @@ SONG_HISTORY_TOOL = {
 
 
 def _song_to_slug(song: str) -> str:
+    # Take only the first song if a segue notation like "Tweezer > Lifeboy" is passed
+    song = song.split(">")[0]
     slug = song.lower().strip()
     slug = re.sub(r"[^a-z0-9\s-]", "", slug)
     slug = re.sub(r"\s+", "-", slug)
@@ -72,7 +74,7 @@ def get_jamcharts(song: str) -> dict:
             jam["notes"] = notes
         jams.append(jam)
 
-    return {"song": song, "jams": jams, "source": "phish.net"}
+    return {"song": song, "total": data.get("total", len(jams)), "jams": jams, "source": "phish.net"}
 
 
 def get_song_history(song: str) -> dict:
