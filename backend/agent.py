@@ -38,7 +38,11 @@ def run_query(question: str) -> dict:
             tool_results = []
             for block in response.content:
                 if block.type == "tool_use":
-                    result = TOOL_DISPATCH[block.name](**block.input)
+                    tool_fn = TOOL_DISPATCH.get(block.name)
+                    if tool_fn is None:
+                        result = {"error": f"Unknown tool: {block.name}", "source": "agent"}
+                    else:
+                        result = tool_fn(**block.input)
                     sources.append(result.get("source", block.name))
                     tool_results.append({
                         "type": "tool_result",
