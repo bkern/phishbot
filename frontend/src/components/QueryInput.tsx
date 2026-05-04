@@ -14,6 +14,7 @@ export function QueryInput({ onSubmit, disabled }: Props) {
     const trimmed = value.trim()
     if (!trimmed) return
     onSubmit(trimmed)
+    setValue('')
   }
 
   function handleKeyDown(e: KeyboardEvent<HTMLTextAreaElement>) {

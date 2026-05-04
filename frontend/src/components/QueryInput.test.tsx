@@ -44,3 +44,19 @@ test('Ask button is disabled when disabled prop is true', () => {
   render(<QueryInput onSubmit={vi.fn()} disabled={true} />)
   expect(screen.getByRole('button', { name: /ask/i })).toBeDisabled()
 })
+
+test('clears the textarea after submitting', async () => {
+  const onSubmit = vi.fn()
+  render(<QueryInput onSubmit={onSubmit} disabled={false} />)
+  await userEvent.type(screen.getByRole('textbox'), 'longest Tweezer?')
+  fireEvent.click(screen.getByRole('button', { name: /ask/i }))
+  expect(screen.getByRole('textbox')).toHaveValue('')
+})
+
+test('Cmd+Enter submits the question', async () => {
+  const onSubmit = vi.fn()
+  render(<QueryInput onSubmit={onSubmit} disabled={false} />)
+  await userEvent.type(screen.getByRole('textbox'), 'Carini stats')
+  fireEvent.keyDown(screen.getByRole('textbox'), { key: 'Enter', metaKey: true })
+  expect(onSubmit).toHaveBeenCalledWith('Carini stats')
+})
