@@ -28,7 +28,7 @@ export function QueryInput({ onSubmit, disabled }: Props) {
       <span className="text-[10px] font-semibold tracking-widest text-[#444] uppercase">Ask</span>
       <textarea
         className="bg-transparent outline-none text-[#e1e1e1] text-base resize-none placeholder-[#333]"
-        rows={2}
+        rows={3}
         placeholder="Ask anything about Phish..."
         value={value}
         onChange={e => setValue(e.target.value)}
