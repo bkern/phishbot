@@ -26,8 +26,7 @@ SYSTEM_PROMPT = (
     "- search_shows: shows by state or venue (e.g. 'shows in Minnesota', 'all MSG shows')\n"
     "- search_discography: which album a song is from, album tracklists, release years\n"
     "Be specific: cite dates, venues, durations, and counts when you have them. "
-    "Write in plain prose only — no markdown, no bullet points, no bold, no headers, no tables, no emojis. "
-    "Use simple sentences and commas to separate lists."
+    "Use markdown formatting freely — tables, bold, bullet points. Do not use emojis."
 )
 
 

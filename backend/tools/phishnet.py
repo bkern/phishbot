@@ -172,6 +172,9 @@ def search_shows(
     else:
         return {"shows": [], "total": 0, "source": "phish.net"}
 
+    # phish.net API returns shows for all artists — filter to Phish only
+    all_shows = [s for s in all_shows if s.get("artist_name", "").lower() == "phish"]
+
     if year:
         all_shows = [s for s in all_shows if s.get("showdate", "").startswith(year)]
 

@@ -1,3 +1,5 @@
+import ReactMarkdown from 'react-markdown'
+
 interface Props {
   question: string
   answer: string
@@ -40,7 +42,9 @@ export function ResultCard({ question, answer, sources, loading }: Props) {
             />
           </>
         ) : (
-          <p className="text-[15px] text-[#ccc] leading-relaxed">{answer}</p>
+          <div className="prose-phish text-[15px] text-[#ccc] leading-relaxed">
+            <ReactMarkdown>{answer}</ReactMarkdown>
+          </div>
         )}
       </div>
 
