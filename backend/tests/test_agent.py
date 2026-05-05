@@ -89,3 +89,8 @@ def test_agent_dispatch_includes_phishnet_tools():
     assert "get_jamcharts" in agent.TOOL_DISPATCH
     assert "get_song_history" in agent.TOOL_DISPATCH
     assert "search_setlists" in agent.TOOL_DISPATCH
+
+
+def test_agent_dispatch_includes_search_shows():
+    import agent
+    assert "search_shows" in agent.TOOL_DISPATCH
