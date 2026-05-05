@@ -1,5 +1,6 @@
 import os
 import re
+from urllib.parse import quote as url_quote
 import httpx
 
 PHISHNET_BASE = "https://api.phish.net/v5"
@@ -98,3 +99,89 @@ def get_song_history(song: str) -> dict:
         "lyrics": entry.get("lyrics") or None,
         "source": "phish.net",
     }
+
+
+SEARCH_SHOWS_TOOL = {
+    "name": "search_shows",
+    "description": (
+        "Search Phish shows by US state or venue name. "
+        "Use for questions like 'how many shows in Minnesota', "
+        "'what venues has Phish played in Colorado', or "
+        "'all shows at Madison Square Garden'. "
+        "Provide state (2-letter abbreviation) OR venue name — not both. "
+        "Optionally filter by year."
+    ),
+    "input_schema": {
+        "type": "object",
+        "properties": {
+            "state": {
+                "type": "string",
+                "description": "2-letter US state abbreviation, e.g. 'MN' for Minnesota, 'CO' for Colorado, 'NY' for New York",
+            },
+            "venue": {
+                "type": "string",
+                "description": "Venue name, e.g. 'Madison Square Garden', 'Sphere', 'Red Rocks Amphitheatre'",
+            },
+            "year": {
+                "type": "string",
+                "description": "4-digit year to filter results, e.g. '2024'",
+            },
+        },
+        "required": [],
+    },
+}
+
+
+def search_shows(
+    state: str = None,
+    venue: str = None,
+    year: str = None,
+) -> dict:
+    apikey = os.environ["PHISHNET_API_KEY"]
+
+    if venue:
+        venue_response = httpx.get(
+            f"{PHISHNET_BASE}/venues/venuename/{url_quote(venue)}.json",
+            params={"apikey": apikey},
+            timeout=10.0,
+        )
+        venue_response.raise_for_status()
+        venues = venue_response.json().get("data", [])
+        if not venues:
+            return {"shows": [], "total": 0, "source": "phish.net"}
+        venueid = venues[0]["venueid"]
+
+        shows_response = httpx.get(
+            f"{PHISHNET_BASE}/shows/venueid/{venueid}.json",
+            params={"apikey": apikey},
+            timeout=10.0,
+        )
+        shows_response.raise_for_status()
+        all_shows = shows_response.json().get("data", [])
+
+    elif state:
+        shows_response = httpx.get(
+            f"{PHISHNET_BASE}/shows/state/{state}.json",
+            params={"apikey": apikey},
+            timeout=10.0,
+        )
+        shows_response.raise_for_status()
+        all_shows = shows_response.json().get("data", [])
+
+    else:
+        return {"shows": [], "total": 0, "source": "phish.net"}
+
+    if year:
+        all_shows = [s for s in all_shows if s.get("showdate", "").startswith(year)]
+
+    shows = [
+        {
+            "date": s.get("showdate", ""),
+            "venue": s.get("venue", ""),
+            "city": s.get("city", ""),
+            "state": s.get("state", ""),
+        }
+        for s in all_shows
+    ]
+
+    return {"shows": shows, "total": len(shows), "source": "phish.net"}

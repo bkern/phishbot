@@ -183,3 +183,135 @@ def test_get_song_history_not_found_includes_source():
     with patch("tools.phishnet.httpx.get", return_value=_mock_response([])):
         result = get_song_history(song="Nonexistent XYZ")
     assert result["source"] == "phish.net"
+
+
+# ── search_shows tests ────────────────────────────────────────────────────────
+
+SAMPLE_SHOWS = [
+    {
+        "showdate": "2023-07-15",
+        "venue": "Target Center",
+        "city": "Minneapolis",
+        "state": "MN",
+        "country": "USA",
+    },
+    {
+        "showdate": "2019-08-02",
+        "venue": "Xcel Energy Center",
+        "city": "Saint Paul",
+        "state": "MN",
+        "country": "USA",
+    },
+]
+
+SAMPLE_VENUE = [
+    {
+        "venueid": "123",
+        "venuename": "Madison Square Garden",
+        "city": "New York",
+        "state": "NY",
+        "country": "USA",
+    }
+]
+
+
+def test_search_shows_tool_definition_shape():
+    from tools.phishnet import SEARCH_SHOWS_TOOL
+
+    assert SEARCH_SHOWS_TOOL["name"] == "search_shows"
+    assert "description" in SEARCH_SHOWS_TOOL
+    assert "input_schema" in SEARCH_SHOWS_TOOL
+    props = SEARCH_SHOWS_TOOL["input_schema"]["properties"]
+    assert "state" in props
+    assert "venue" in props
+    assert "year" in props
+
+
+def test_search_shows_by_state_returns_source():
+    from tools.phishnet import search_shows
+
+    with patch("tools.phishnet.httpx.get", return_value=_mock_response(SAMPLE_SHOWS)):
+        result = search_shows(state="MN")
+    assert result["source"] == "phish.net"
+
+
+def test_search_shows_by_state_returns_shows_with_correct_fields():
+    from tools.phishnet import search_shows
+
+    with patch("tools.phishnet.httpx.get", return_value=_mock_response(SAMPLE_SHOWS)):
+        result = search_shows(state="MN")
+    show = result["shows"][0]
+    assert show["date"] == "2023-07-15"
+    assert show["venue"] == "Target Center"
+    assert show["city"] == "Minneapolis"
+    assert show["state"] == "MN"
+
+
+def test_search_shows_by_state_passes_state_to_url():
+    from tools.phishnet import search_shows
+
+    with patch("tools.phishnet.httpx.get", return_value=_mock_response([])) as mock_get:
+        search_shows(state="CO")
+    url = mock_get.call_args[0][0]
+    assert "CO" in url
+
+
+def test_search_shows_returns_total_count():
+    from tools.phishnet import search_shows
+
+    with patch("tools.phishnet.httpx.get", return_value=_mock_response(SAMPLE_SHOWS)):
+        result = search_shows(state="MN")
+    assert result["total"] == 2
+
+
+def test_search_shows_by_state_filters_by_year():
+    from tools.phishnet import search_shows
+
+    with patch("tools.phishnet.httpx.get", return_value=_mock_response(SAMPLE_SHOWS)):
+        result = search_shows(state="MN", year="2023")
+    assert result["total"] == 1
+    assert result["shows"][0]["date"] == "2023-07-15"
+
+
+def test_search_shows_by_venue_makes_two_api_calls():
+    from tools.phishnet import search_shows
+
+    venue_resp = _mock_response(SAMPLE_VENUE)
+    shows_resp = _mock_response(SAMPLE_SHOWS[:1])
+
+    with patch("tools.phishnet.httpx.get", side_effect=[venue_resp, shows_resp]) as mock_get:
+        result = search_shows(venue="Madison Square Garden")
+
+    assert mock_get.call_count == 2
+    assert result["source"] == "phish.net"
+    assert result["shows"][0]["date"] == "2023-07-15"
+
+
+def test_search_shows_by_venue_uses_venueid_in_second_call():
+    from tools.phishnet import search_shows
+
+    venue_resp = _mock_response([{
+        "venueid": "789",
+        "venuename": "Sphere",
+        "city": "Las Vegas",
+        "state": "NV",
+        "country": "USA",
+    }])
+    shows_resp = _mock_response([])
+
+    with patch("tools.phishnet.httpx.get", side_effect=[venue_resp, shows_resp]) as mock_get:
+        search_shows(venue="Sphere")
+
+    second_url = mock_get.call_args_list[1][0][0]
+    assert "789" in second_url
+
+
+def test_search_shows_venue_not_found_returns_empty():
+    from tools.phishnet import search_shows
+
+    with patch("tools.phishnet.httpx.get", return_value=_mock_response([])):
+        result = search_shows(venue="Nonexistent Venue XYZ")
+
+    assert result["shows"] == []
+    assert result["total"] == 0
+    assert result["source"] == "phish.net"
