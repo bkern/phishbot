@@ -1,4 +1,5 @@
 import ReactMarkdown from 'react-markdown'
+import remarkGfm from 'remark-gfm'
 
 interface Props {
   question: string
@@ -43,7 +44,7 @@ export function ResultCard({ question, answer, sources, loading }: Props) {
           </>
         ) : (
           <div className="prose-phish text-base text-[#d0d0d0] leading-relaxed">
-            <ReactMarkdown>{answer}</ReactMarkdown>
+            <ReactMarkdown remarkPlugins={[remarkGfm]}>{answer}</ReactMarkdown>
           </div>
         )}
       </div>
