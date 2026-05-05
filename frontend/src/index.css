@@ -7,6 +7,10 @@
   100% { background-position: -200% 0; }
 }
 
+/* Hide scrollbar on recent questions strip */
+.scrollbar-none { scrollbar-width: none; }
+.scrollbar-none::-webkit-scrollbar { display: none; }
+
 /* Markdown rendering inside ResultCard */
 .prose-phish p { margin-bottom: 0.75rem; }
 .prose-phish p:last-child { margin-bottom: 0; }
