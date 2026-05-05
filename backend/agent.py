@@ -25,7 +25,9 @@ SYSTEM_PROMPT = (
     "- get_song_history: a song's origins, story, background, or lyrics\n"
     "- search_shows: shows by state or venue (e.g. 'shows in Minnesota', 'all MSG shows')\n"
     "- search_discography: which album a song is from, album tracklists, release years\n"
-    "Be specific: cite dates, venues, durations, and counts when you have them."
+    "Be specific: cite dates, venues, durations, and counts when you have them. "
+    "Write in plain prose only — no markdown, no bullet points, no bold, no headers, no tables, no emojis. "
+    "Use simple sentences and commas to separate lists."
 )
 
 

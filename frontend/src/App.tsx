@@ -44,7 +44,7 @@ export default function App() {
 
   return (
     <div className="min-h-screen bg-[#0a0a0a] text-[#e1e1e1] flex flex-col items-center px-4 py-8">
-      <div className="w-full max-w-2xl flex flex-col gap-6">
+      <div className="w-full max-w-2xl md:max-w-3xl flex flex-col gap-6">
 
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2.5">
