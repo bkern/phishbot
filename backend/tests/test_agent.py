@@ -94,3 +94,8 @@ def test_agent_dispatch_includes_phishnet_tools():
 def test_agent_dispatch_includes_search_shows():
     import agent
     assert "search_shows" in agent.TOOL_DISPATCH
+
+
+def test_agent_dispatch_includes_search_discography():
+    import agent
+    assert "search_discography" in agent.TOOL_DISPATCH

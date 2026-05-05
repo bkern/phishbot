@@ -5,6 +5,7 @@ from tools.phishnet import (
     JAMCHARTS_TOOL, SONG_HISTORY_TOOL, SEARCH_SHOWS_TOOL,
     get_jamcharts, get_song_history, search_shows,
 )
+from tools.discography import SEARCH_DISCOGRAPHY_TOOL, search_discography
 
 client = anthropic.Anthropic()
 
@@ -13,15 +14,17 @@ TOOL_DISPATCH = {
     "get_jamcharts": get_jamcharts,
     "get_song_history": get_song_history,
     "search_shows": search_shows,
+    "search_discography": search_discography,
 }
 
 SYSTEM_PROMPT = (
     "You are PhishBot, an expert on Phish's concert history. "
-    "You have four tools — use the most appropriate one:\n"
+    "You have five tools — use the most appropriate one:\n"
     "- search_setlists: when/where was a song played, show openers/closers, setlist queries\n"
     "- get_jamcharts: best or longest versions of a song, notable jams, must-hear performances\n"
     "- get_song_history: a song's origins, story, background, or lyrics\n"
     "- search_shows: shows by state or venue (e.g. 'shows in Minnesota', 'all MSG shows')\n"
+    "- search_discography: which album a song is from, album tracklists, release years\n"
     "Be specific: cite dates, venues, durations, and counts when you have them."
 )
 
@@ -35,7 +38,7 @@ def run_query(question: str) -> dict:
             model="claude-sonnet-4-6",
             max_tokens=1024,
             system=SYSTEM_PROMPT,
-            tools=[SETLISTFM_TOOL, JAMCHARTS_TOOL, SONG_HISTORY_TOOL, SEARCH_SHOWS_TOOL],
+            tools=[SETLISTFM_TOOL, JAMCHARTS_TOOL, SONG_HISTORY_TOOL, SEARCH_SHOWS_TOOL, SEARCH_DISCOGRAPHY_TOOL],
             messages=messages,
         )
 
