@@ -10,24 +10,24 @@ interface Props {
 export function ResultCard({ question, answer, sources, loading }: Props) {
   return (
     <div className="rounded-xl border border-[#1e1e1e] bg-[#111] overflow-hidden">
-      <div className="flex items-center justify-between px-4 py-3 border-b border-[#1a1a1a]">
+      <div className="flex items-center justify-between px-5 py-3.5 border-b border-[#1a1a1a]">
         {loading ? (
-          <span className="text-[10px] font-semibold tracking-widest text-[#444] uppercase">
+          <span className="text-xs font-semibold tracking-widest text-[#555] uppercase">
             Thinking...
           </span>
         ) : (
           <>
-            <span className="text-[10px] font-semibold tracking-widest text-[#444] uppercase">
-              ANSWER
+            <span className="text-xs font-semibold tracking-widest text-[#555] uppercase">
+              Answer
             </span>
-            <span className="text-[12px] text-[#555] italic truncate max-w-xs">
+            <span className="text-sm text-[#666] italic truncate max-w-sm">
               "{question}"
             </span>
           </>
         )}
       </div>
 
-      <div className="px-4 py-5 min-h-16">
+      <div className="px-5 py-6 min-h-16">
         {loading ? (
           <>
             {/* shimmer keyframe defined in src/index.css */}
@@ -42,19 +42,19 @@ export function ResultCard({ question, answer, sources, loading }: Props) {
             />
           </>
         ) : (
-          <div className="prose-phish text-[15px] text-[#ccc] leading-relaxed">
+          <div className="prose-phish text-base text-[#d0d0d0] leading-relaxed">
             <ReactMarkdown>{answer}</ReactMarkdown>
           </div>
         )}
       </div>
 
       {!loading && sources.length > 0 && (
-        <div className="flex items-center gap-2 px-4 py-2.5 border-t border-[#1a1a1a]">
-          <span className="text-[10px] text-[#333]">sources</span>
+        <div className="flex items-center gap-2 px-5 py-3 border-t border-[#1a1a1a]">
+          <span className="text-xs text-[#444]">sources</span>
           {sources.map(src => (
             <span
               key={src}
-              className="text-[10px] text-[#444] bg-[#161616] border border-[#1e1e1e] rounded px-1.5 py-0.5"
+              className="text-xs text-[#666] bg-[#161616] border border-[#222] rounded px-2 py-0.5"
             >
               {src}
             </span>

@@ -47,22 +47,22 @@ export default function App() {
       <div className="w-full max-w-3xl lg:max-w-5xl xl:max-w-6xl flex flex-col gap-6">
 
         <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2.5">
-            <div className="w-9 h-9 bg-[#00c9a0] rounded-[50%_50%_50%_50%/60%_60%_40%_40%] flex items-center justify-center text-lg">
+          <div className="flex items-center gap-3">
+            <div className="w-11 h-11 bg-[#00c9a0] rounded-[50%_50%_50%_50%/60%_60%_40%_40%] flex items-center justify-center text-xl">
               🐟
             </div>
-            <div className="flex items-baseline gap-1.5">
-              <span className="text-[22px] font-bold tracking-tight">
+            <div className="flex items-baseline gap-2">
+              <span className="text-3xl font-bold tracking-tight">
                 Phish<span className="text-[#00c9a0]">Bot</span>
               </span>
-              <span className="text-[10px] font-semibold text-[#555] tracking-widest uppercase">AI</span>
+              <span className="text-xs font-semibold text-[#555] tracking-widest uppercase">AI</span>
             </div>
           </div>
-          <div className="flex gap-1.5">
+          <div className="flex gap-2">
             {['setlist.fm', 'phish.net', 'web'].map(src => (
               <span
                 key={src}
-                className="text-[10px] text-[#444] bg-[#161616] border border-[#222] rounded-full px-2 py-0.5"
+                className="text-xs text-[#777] bg-[#161616] border border-[#2a2a2a] rounded-full px-3 py-1"
               >
                 {src}
               </span>
