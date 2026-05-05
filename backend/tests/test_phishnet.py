@@ -194,6 +194,7 @@ SAMPLE_SHOWS = [
         "city": "Minneapolis",
         "state": "MN",
         "country": "USA",
+        "artist_name": "Phish",
     },
     {
         "showdate": "2019-08-02",
@@ -201,16 +202,18 @@ SAMPLE_SHOWS = [
         "city": "Saint Paul",
         "state": "MN",
         "country": "USA",
+        "artist_name": "Phish",
     },
 ]
 
-SAMPLE_VENUE = [
+# setlist.fm format used by venue searches
+SAMPLE_SETLISTFM_SHOWS = [
     {
-        "venueid": "123",
-        "venuename": "Madison Square Garden",
-        "city": "New York",
-        "state": "NY",
-        "country": "USA",
+        "eventDate": "15-07-2023",
+        "venue": {
+            "name": "Madison Square Garden",
+            "city": {"name": "New York", "stateCode": "NY"},
+        },
     }
 ]
 
@@ -273,43 +276,44 @@ def test_search_shows_by_state_filters_by_year():
     assert result["shows"][0]["date"] == "2023-07-15"
 
 
-def test_search_shows_by_venue_makes_two_api_calls():
+def test_search_shows_by_venue_makes_one_api_call():
     from tools.phishnet import search_shows
 
-    venue_resp = _mock_response(SAMPLE_VENUE)
-    shows_resp = _mock_response(SAMPLE_SHOWS[:1])
+    mock_resp = MagicMock()
+    mock_resp.json.return_value = {"setlist": SAMPLE_SETLISTFM_SHOWS}
+    mock_resp.raise_for_status = MagicMock()
 
-    with patch("tools.phishnet.httpx.get", side_effect=[venue_resp, shows_resp]) as mock_get:
+    with patch("tools.phishnet.httpx.get", return_value=mock_resp) as mock_get:
         result = search_shows(venue="Madison Square Garden")
 
-    assert mock_get.call_count == 2
+    assert mock_get.call_count == 1
     assert result["source"] == "phish.net"
     assert result["shows"][0]["date"] == "2023-07-15"
+    assert result["shows"][0]["venue"] == "Madison Square Garden"
 
 
-def test_search_shows_by_venue_uses_venueid_in_second_call():
+def test_search_shows_by_venue_passes_venue_name_to_api():
     from tools.phishnet import search_shows
 
-    venue_resp = _mock_response([{
-        "venueid": "789",
-        "venuename": "Sphere",
-        "city": "Las Vegas",
-        "state": "NV",
-        "country": "USA",
-    }])
-    shows_resp = _mock_response([])
+    mock_resp = MagicMock()
+    mock_resp.json.return_value = {"setlist": []}
+    mock_resp.raise_for_status = MagicMock()
 
-    with patch("tools.phishnet.httpx.get", side_effect=[venue_resp, shows_resp]) as mock_get:
-        search_shows(venue="Sphere")
+    with patch("tools.phishnet.httpx.get", return_value=mock_resp) as mock_get:
+        search_shows(venue="Deer Creek")
 
-    second_url = mock_get.call_args_list[1][0][0]
-    assert "789" in second_url
+    call_params = mock_get.call_args[1]["params"]
+    assert call_params["venueName"] == "Deer Creek"
 
 
 def test_search_shows_venue_not_found_returns_empty():
     from tools.phishnet import search_shows
 
-    with patch("tools.phishnet.httpx.get", return_value=_mock_response([])):
+    mock_resp = MagicMock()
+    mock_resp.json.return_value = {"setlist": []}
+    mock_resp.raise_for_status = MagicMock()
+
+    with patch("tools.phishnet.httpx.get", return_value=mock_resp):
         result = search_shows(venue="Nonexistent Venue XYZ")
 
     assert result["shows"] == []

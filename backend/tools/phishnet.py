@@ -133,47 +133,74 @@ SEARCH_SHOWS_TOOL = {
 }
 
 
+def _shows_from_setlistfm(venue: str) -> list[dict]:
+    """Venue-by-name search via setlist.fm (phish.net venue endpoint is access-restricted)."""
+    response = httpx.get(
+        "https://api.setlist.fm/rest/1.0/search/setlists",
+        headers={
+            "x-api-key": os.environ["SETLISTFM_API_KEY"],
+            "Accept": "application/json",
+        },
+        params={"artistName": "Phish", "venueName": venue, "p": 1},
+        timeout=10.0,
+    )
+    response.raise_for_status()
+    shows = []
+    for s in response.json().get("setlist", []):
+        # setlist.fm returns dates as DD-MM-YYYY — convert to YYYY-MM-DD
+        raw_date = s.get("eventDate", "")
+        try:
+            d, m, y = raw_date.split("-")
+            showdate = f"{y}-{m}-{d}"
+        except ValueError:
+            showdate = raw_date
+        venue_obj = s.get("venue", {})
+        city_obj = venue_obj.get("city", {})
+        shows.append({
+            "showdate": showdate,
+            "venue": venue_obj.get("name", ""),
+            "city": city_obj.get("name", ""),
+            "state": city_obj.get("stateCode", ""),
+        })
+    return shows
+
+
 def search_shows(
     state: Optional[str] = None,
     venue: Optional[str] = None,
     year: Optional[str] = None,
 ) -> dict:
-    apikey = os.environ["PHISHNET_API_KEY"]
+    try:
+        if venue:
+            # phish.net venue-by-name endpoint is access-restricted; use setlist.fm instead
+            all_shows = _shows_from_setlistfm(venue)
 
-    if venue:
-        venue_response = httpx.get(
-            f"{PHISHNET_BASE}/venues/venuename/{url_quote(venue, safe='')}.json",
-            params={"apikey": apikey},
-            timeout=10.0,
-        )
-        venue_response.raise_for_status()
-        venues = venue_response.json().get("data", [])
-        if not venues:
+        elif state:
+            response = httpx.get(
+                f"{PHISHNET_BASE}/shows/state/{state}.json",
+                params={"apikey": os.environ["PHISHNET_API_KEY"]},
+                timeout=10.0,
+            )
+            response.raise_for_status()
+            raw = response.json().get("data", [])
+            # phish.net returns shows for all artists — filter to Phish only
+            all_shows = [
+                {
+                    "showdate": s.get("showdate", ""),
+                    "venue": s.get("venue", ""),
+                    "city": s.get("city", ""),
+                    "state": s.get("state", ""),
+                }
+                for s in raw
+                if s.get("artist_name", "").lower() == "phish"
+            ]
+
+        else:
             return {"shows": [], "total": 0, "source": "phish.net"}
-        venueid = venues[0]["venueid"]
 
-        shows_response = httpx.get(
-            f"{PHISHNET_BASE}/shows/venueid/{venueid}.json",
-            params={"apikey": apikey},
-            timeout=10.0,
-        )
-        shows_response.raise_for_status()
-        all_shows = shows_response.json().get("data", [])
-
-    elif state:
-        shows_response = httpx.get(
-            f"{PHISHNET_BASE}/shows/state/{state}.json",
-            params={"apikey": apikey},
-            timeout=10.0,
-        )
-        shows_response.raise_for_status()
-        all_shows = shows_response.json().get("data", [])
-
-    else:
-        return {"shows": [], "total": 0, "source": "phish.net"}
-
-    # phish.net API returns shows for all artists — filter to Phish only
-    all_shows = [s for s in all_shows if s.get("artist_name", "").lower() == "phish"]
+    except httpx.HTTPStatusError as e:
+        return {"shows": [], "total": 0, "source": "phish.net",
+                "error": f"API error: {e.response.status_code}"}
 
     if year:
         all_shows = [s for s in all_shows if s.get("showdate", "").startswith(year)]
