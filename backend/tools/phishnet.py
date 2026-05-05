@@ -1,5 +1,6 @@
 import os
 import re
+from typing import Optional
 from urllib.parse import quote as url_quote
 import httpx
 
@@ -133,15 +134,15 @@ SEARCH_SHOWS_TOOL = {
 
 
 def search_shows(
-    state: str = None,
-    venue: str = None,
-    year: str = None,
+    state: Optional[str] = None,
+    venue: Optional[str] = None,
+    year: Optional[str] = None,
 ) -> dict:
     apikey = os.environ["PHISHNET_API_KEY"]
 
     if venue:
         venue_response = httpx.get(
-            f"{PHISHNET_BASE}/venues/venuename/{url_quote(venue)}.json",
+            f"{PHISHNET_BASE}/venues/venuename/{url_quote(venue, safe='')}.json",
             params={"apikey": apikey},
             timeout=10.0,
         )
