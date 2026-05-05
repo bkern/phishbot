@@ -194,8 +194,19 @@ def search_discography(
     song: Optional[str] = None,
     album: Optional[str] = None,
 ) -> dict:
-    if song:
-        query = song.lower()
+    """
+    Search the Phish studio discography.
+
+    If `song` is provided, returns matching tracks across all albums.
+    If `album` is provided (and `song` is not), returns matching album records.
+    If neither is provided, returns a title/year index of all albums.
+
+    When both are provided, `song` takes precedence.
+    """
+    if song is not None:
+        query = song.strip().lower()
+        if not query:
+            return {"matches": [], "source": "discography"}
         matches = []
         for record in DISCOGRAPHY:
             for track in record["songs"]:
@@ -207,8 +218,10 @@ def search_discography(
                     })
         return {"matches": matches, "source": "discography"}
 
-    if album:
-        query = album.lower()
+    if album is not None:
+        query = album.strip().lower()
+        if not query:
+            return {"albums": [], "source": "discography"}
         albums = [r for r in DISCOGRAPHY if query in r["title"].lower()]
         return {"albums": albums, "source": "discography"}
 
