@@ -15,7 +15,10 @@ GET_SONG_STATS_TOOL = {
         "and the 10 most recent performances. "
         "Use this for gap questions ('when was Tweezer last played?'), "
         "transition questions ('what usually follows Carini?'), "
-        "and set-type questions ('is Antelope a first set or second set song?')."
+        "and set-type questions ('is Antelope a first set or second set song?'). "
+        "IMPORTANT: ihoz.com data lags behind real performances by weeks or months — "
+        "it may be missing the most recent shows. For questions about very recent plays, "
+        "also call search_setlists or note that the data may be incomplete."
     ),
     "input_schema": {
         "type": "object",
@@ -77,6 +80,7 @@ def get_song_stats(song: str) -> dict:
     return {
         "song": song,
         "times_played": len(plays),
+        # ihoz.com returns rows in ascending chronological order (oldest first)
         "last_played": plays[-1]["date"],
         "set_breakdown": dict(set_counts.most_common()),
         "top_before": [{"song": s, "count": c} for s, c in before_counts.most_common(5)],

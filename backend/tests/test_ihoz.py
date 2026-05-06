@@ -95,7 +95,9 @@ def test_top_after_counts_correctly():
     with patch("tools.ihoz.httpx.get", return_value=_mock_get()):
         result = get_song_stats(song="Tweezer")
     after_songs = [e["song"] for e in result["top_after"]]
-    assert "Uncle Pen" in after_songs or "Fee" in after_songs
+    # fixture has 5 plays with 5 distinct after-songs, all count=1; all should appear
+    assert "Uncle Pen" in after_songs
+    assert "Fee" in after_songs
 
 
 def test_before_skips_unknown_marker():
