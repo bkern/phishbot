@@ -10,27 +10,25 @@ interface Result {
   sources: string[]
 }
 
-const MAX_HISTORY = 5
+interface ConversationMessage {
+  role: 'user' | 'assistant'
+  content: string
+  sources: string[]
+}
 
 export default function App() {
   const [appState, setAppState] = useState<AppState>('idle')
   const [result, setResult] = useState<Result | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [currentQuestion, setCurrentQuestion] = useState('')
-  const [history, setHistory] = useState<Result[]>([])
+  const [messages, setMessages] = useState<ConversationMessage[]>([])
 
-  function addToHistory(item: Result) {
-    setHistory(prev => {
-      const deduped = prev.filter(h => h.question !== item.question)
-      return [item, ...deduped].slice(0, MAX_HISTORY)
-    })
-  }
-
-  function restoreFromHistory(item: Result) {
-    setResult(item)
-    setCurrentQuestion(item.question)
-    setAppState('result')
+  function handleNewConversation() {
+    setMessages([])
+    setResult(null)
+    setAppState('idle')
     setError(null)
+    setCurrentQuestion('')
   }
 
   async function handleSubmit(question: string) {
@@ -38,11 +36,13 @@ export default function App() {
     setCurrentQuestion(question)
     setError(null)
 
+    const history = messages.map(({ role, content }) => ({ role, content }))
+
     try {
       const response = await fetch('http://localhost:8000/query', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ question }),
+        body: JSON.stringify({ question, history }),
       })
 
       if (!response.ok) {
@@ -53,15 +53,17 @@ export default function App() {
       const data = await response.json()
       const newResult = { question, answer: data.answer, sources: data.sources }
       setResult(newResult)
-      addToHistory(newResult)
+      setMessages(prev => [
+        ...prev,
+        { role: 'user', content: question, sources: [] },
+        { role: 'assistant', content: data.answer, sources: data.sources },
+      ])
       setAppState('result')
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Something went wrong')
       setAppState('error')
     }
   }
-
-  const activeQuestion = result?.question ?? currentQuestion
 
   return (
     <div className="min-h-screen bg-[#0a0a0a] text-[#e1e1e1] flex flex-col items-center px-6 py-10">
@@ -79,7 +81,16 @@ export default function App() {
               <span className="text-xs font-semibold text-[#555] tracking-widest uppercase">AI</span>
             </div>
           </div>
-          <div className="flex gap-2">
+          <div className="flex items-center gap-2">
+            {messages.length > 0 && (
+              <button
+                type="button"
+                onClick={handleNewConversation}
+                className="text-xs text-[#555] hover:text-[#888] transition-colors px-3 py-1 rounded border border-[#222] hover:border-[#333]"
+              >
+                New Conversation
+              </button>
+            )}
             {['setlist.fm', 'phish.net', 'web'].map(src => (
               <span
                 key={src}
@@ -92,30 +103,6 @@ export default function App() {
         </div>
 
         <QueryInput onSubmit={handleSubmit} disabled={appState === 'loading'} />
-
-        {/* Recent questions strip */}
-        {history.length > 0 && (
-          <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-none">
-            {history.map((item) => {
-              const isActive = item.question === activeQuestion
-              return (
-                <button
-                  key={item.question}
-                  type="button"
-                  onClick={() => restoreFromHistory(item)}
-                  className={`shrink-0 text-sm px-3 py-2 rounded-lg border transition-colors text-left max-w-[220px] truncate ${
-                    isActive
-                      ? 'border-[#00c9a0] text-[#00c9a0] bg-[#00c9a008]'
-                      : 'border-[#222] text-[#666] bg-[#111] hover:border-[#333] hover:text-[#999]'
-                  }`}
-                  title={item.question}
-                >
-                  {item.question}
-                </button>
-              )
-            })}
-          </div>
-        )}
 
         {appState === 'loading' && (
           <ResultCard question={currentQuestion} answer="" sources={[]} loading={true} />

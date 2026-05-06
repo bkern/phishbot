@@ -19,7 +19,7 @@ export function ResultCard({ question, answer, sources, loading }: Props) {
         ) : (
           <>
             <span className="text-xs font-semibold tracking-widest text-[#555] uppercase">
-              Answer
+              ANSWER
             </span>
             <span className="text-sm text-[#666] italic truncate max-w-sm">
               "{question}"
