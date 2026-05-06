@@ -99,3 +99,66 @@ def test_agent_dispatch_includes_search_shows():
 def test_agent_dispatch_includes_search_discography():
     import agent
     assert "search_discography" in agent.TOOL_DISPATCH
+
+
+def test_agent_dispatch_includes_get_song_stats():
+    import agent
+    assert "get_song_stats" in agent.TOOL_DISPATCH
+
+
+def test_agent_tools_list_includes_web_search():
+    import agent
+    tool_types = [t.get("type", "") for t in agent.TOOLS]
+    assert any("web_search" in t for t in tool_types)
+
+
+def test_run_query_attributes_web_source_from_server_tool_use():
+    from agent import run_query
+
+    web_block = MagicMock()
+    web_block.type = "server_tool_use"
+    web_block.name = "web_search"
+
+    text_block = MagicMock()
+    text_block.type = "text"
+    text_block.text = "Phish announced a 2026 summer tour."
+
+    response = MagicMock()
+    response.stop_reason = "end_turn"
+    response.content = [web_block, text_block]
+
+    with patch("agent.client") as mock_client:
+        mock_client.messages.create.return_value = response
+        result = run_query("Any Phish tour news?")
+
+    assert "web" in result["sources"]
+
+
+def test_run_query_prepends_history_to_messages():
+    from agent import run_query
+
+    history = [
+        {"role": "user", "content": "when was tweezer last played?"},
+        {"role": "assistant", "content": "Tweezer was last played on December 31, 2025."},
+    ]
+
+    with patch("agent.client") as mock_client:
+        mock_client.messages.create.return_value = _text_response("Carini was last played recently.")
+        run_query("what about carini?", history=history)
+
+    call_messages = mock_client.messages.create.call_args[1]["messages"]
+    assert call_messages[0] == {"role": "user", "content": "when was tweezer last played?"}
+    assert call_messages[1] == {"role": "assistant", "content": "Tweezer was last played on December 31, 2025."}
+    assert call_messages[2] == {"role": "user", "content": "what about carini?"}
+
+
+def test_run_query_empty_history_sends_single_user_message():
+    from agent import run_query
+
+    with patch("agent.client") as mock_client:
+        mock_client.messages.create.return_value = _text_response("Some answer.")
+        run_query("what opened the show?")
+
+    call_messages = mock_client.messages.create.call_args[1]["messages"]
+    assert len(call_messages) == 1
+    assert call_messages[0] == {"role": "user", "content": "what opened the show?"}
