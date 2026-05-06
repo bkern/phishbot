@@ -19,6 +19,7 @@ app.add_middleware(
 
 class QueryRequest(BaseModel):
     question: str
+    history: list[dict] = []
 
 
 class QueryResponse(BaseModel):
@@ -29,7 +30,7 @@ class QueryResponse(BaseModel):
 @app.post("/query", response_model=QueryResponse)
 def query(request: QueryRequest):
     try:
-        result = run_query(request.question)
+        result = run_query(request.question, history=request.history)
         return QueryResponse(**result)
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
