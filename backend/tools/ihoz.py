@@ -2,35 +2,9 @@ from collections import Counter
 from urllib.parse import quote_plus
 import httpx
 from bs4 import BeautifulSoup
+from langchain_core.tools import tool
 
 IHOZ_BASE = "http://www.ihoz.com"  # HTTP only — SSL cert is expired on HTTPS
-
-GET_SONG_STATS_TOOL = {
-    "name": "get_song_stats",
-    "description": (
-        "Look up a Phish song's full play history from ihoz.com. "
-        "Returns: total times played, last played date, "
-        "set distribution (is it a Set 1 or Set 2 staple?), "
-        "the most common songs played immediately before and after it, "
-        "and the 10 most recent performances. "
-        "Use this for gap questions ('when was Tweezer last played?'), "
-        "transition questions ('what usually follows Carini?'), "
-        "and set-type questions ('is Antelope a first set or second set song?'). "
-        "IMPORTANT: ihoz.com data lags behind real performances by weeks or months — "
-        "it may be missing the most recent shows. For questions about very recent plays, "
-        "also call search_setlists or note that the data may be incomplete."
-    ),
-    "input_schema": {
-        "type": "object",
-        "properties": {
-            "song": {
-                "type": "string",
-                "description": "Song name, e.g. 'Tweezer', 'Carini', 'Bathtub Gin'",
-            },
-        },
-        "required": ["song"],
-    },
-}
 
 
 def _normalize_set(raw: str) -> str:
@@ -42,7 +16,17 @@ def _normalize_set(raw: str) -> str:
     return raw or "Unknown"
 
 
+@tool
 def get_song_stats(song: str) -> dict:
+    """Look up a Phish song's full play history from ihoz.com.
+
+    Returns total times played, last played date, set distribution (Set 1 vs Set 2 tendency),
+    the most common songs played immediately before and after it, and the 10 most recent performances.
+    Use for gap questions ('when was Tweezer last played?'), transition questions ('what usually follows Carini?'),
+    and set-type questions ('is Antelope a first set or second set song?').
+    IMPORTANT: ihoz.com data lags behind real performances by weeks or months.
+    For very recent plays, also call search_setlists or note the data may be incomplete.
+    """
     url = f"{IHOZ_BASE}/cgi/phish?song={quote_plus(song)}&chart=on"
     try:
         response = httpx.get(url, timeout=15.0, follow_redirects=True)
