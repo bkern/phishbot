@@ -1,52 +1,25 @@
 import os
+from typing import Optional, Literal
 import httpx
+from langchain_core.tools import tool
 
 SETLISTFM_BASE = "https://api.setlist.fm/rest/1.0"
 
-TOOL_DEFINITION = {
-    "name": "search_setlists",
-    "description": (
-        "Search Phish setlists by year, song name, or specific date. "
-        "Use 'date' (YYYY-MM-DD) to get the full setlist for a specific show — all songs, all sets. "
-        "Use 'song' to find all shows where a song was played. "
-        "Use 'position' to find show openers or closers."
-    ),
-    "input_schema": {
-        "type": "object",
-        "properties": {
-            "date": {
-                "type": "string",
-                "description": "Specific show date in YYYY-MM-DD format, e.g. '2026-04-18'. Returns the complete setlist for that show.",
-            },
-            "year": {
-                "type": "string",
-                "description": "4-digit year, e.g. '2024'",
-            },
-            "song": {
-                "type": "string",
-                "description": "Song name to search for, e.g. 'Tweezer', 'Maze'",
-            },
-            "position": {
-                "type": "string",
-                "enum": ["opener", "closer", "any"],
-                "description": (
-                    "'opener' = first song of the show (excluding encores), "
-                    "'closer' = last song before encores, "
-                    "'any' = no position filter."
-                ),
-            },
-        },
-        "required": [],
-    },
-}
 
-
+@tool
 def search_setlists(
-    year: str = None,
-    song: str = None,
-    date: str = None,
-    position: str = "any",
+    year: Optional[str] = None,
+    song: Optional[str] = None,
+    date: Optional[str] = None,
+    position: Literal["opener", "closer", "any"] = "any",
 ) -> dict:
+    """Search Phish setlists by year, song name, or specific date.
+
+    Use 'date' (YYYY-MM-DD) to get the full setlist for a specific show — all songs, all sets.
+    Use 'song' to find all shows where a song was played.
+    Use 'position' ('opener', 'closer', or 'any') to filter by set position.
+    Use 'year' to narrow results to a specific year.
+    """
     params = {"artistName": "Phish", "p": 1}
     if year:
         params["year"] = year
@@ -78,7 +51,6 @@ def search_setlists(
         venue_obj = setlist.get("venue", {})
         venue = f"{venue_obj.get('name', '')}, {venue_obj.get('city', {}).get('name', '')}"
 
-        # Build flat song list and per-set structure simultaneously
         non_encore_idx = 0
         sets_data = []
         main_songs = []
@@ -121,7 +93,6 @@ def search_setlists(
 
         result = {"date": show_date, "venue": venue, "songs": candidates}
 
-        # Full setlist mode: include structured sets when fetching by date with no song filter
         if date and not song:
             result["sets"] = sets_data
 
