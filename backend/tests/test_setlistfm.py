@@ -39,7 +39,7 @@ def test_search_setlists_tool_name():
 
 def test_search_setlists_tool_has_year_song_position_args():
     from tools.setlistfm import search_setlists
-    schema = search_setlists.args_schema.schema()
+    schema = search_setlists.args_schema.model_json_schema()
     props = schema["properties"]
     assert "year" in props
     assert "song" in props
