@@ -3,45 +3,9 @@ import re
 from typing import Optional
 from urllib.parse import quote as url_quote
 import httpx
+from langchain_core.tools import tool
 
 PHISHNET_BASE = "https://api.phish.net/v5"
-
-JAMCHARTS_TOOL = {
-    "name": "get_jamcharts",
-    "description": (
-        "Get community jam charts for a Phish song — the notable, highly-rated performances "
-        "with track durations. Use this for questions about the best or longest versions of a song, "
-        "or when asked about must-hear jams. Returns each jam's date, venue, set, duration, and notes."
-    ),
-    "input_schema": {
-        "type": "object",
-        "properties": {
-            "song": {
-                "type": "string",
-                "description": "Song name, e.g. 'Tweezer', 'Bathtub Gin', 'Carini'",
-            },
-        },
-        "required": ["song"],
-    },
-}
-
-SONG_HISTORY_TOOL = {
-    "name": "get_song_history",
-    "description": (
-        "Get the history, background, and metadata for a Phish song from phish.net's "
-        "editorial database. Use this for questions about a song's origins, meaning, or story."
-    ),
-    "input_schema": {
-        "type": "object",
-        "properties": {
-            "song": {
-                "type": "string",
-                "description": "Song name, e.g. 'You Enjoy Myself', 'Wilson', 'Harry Hood'",
-            },
-        },
-        "required": ["song"],
-    },
-}
 
 
 def _song_to_slug(song: str) -> str:
@@ -53,7 +17,13 @@ def _song_to_slug(song: str) -> str:
     return slug
 
 
+@tool
 def get_jamcharts(song: str) -> dict:
+    """Get community jam charts for a Phish song — notable, highly-rated performances with track durations.
+
+    Use for questions about the best or longest versions of a song, or must-hear jams.
+    Returns each jam's date, venue, set, duration, and notes.
+    """
     slug = _song_to_slug(song)
     response = httpx.get(
         f"{PHISHNET_BASE}/jamcharts/slug/{slug}.json",
@@ -79,7 +49,12 @@ def get_jamcharts(song: str) -> dict:
     return {"song": song, "total": data.get("total", len(jams)), "jams": jams, "source": "phish.net"}
 
 
+@tool
 def get_song_history(song: str) -> dict:
+    """Get the history, background, and metadata for a Phish song from phish.net's editorial database.
+
+    Use for questions about a song's origins, meaning, story, or lyrics.
+    """
     slug = _song_to_slug(song)
     response = httpx.get(
         f"{PHISHNET_BASE}/songdata/slug/{slug}.json",
@@ -100,37 +75,6 @@ def get_song_history(song: str) -> dict:
         "lyrics": entry.get("lyrics") or None,
         "source": "phish.net",
     }
-
-
-SEARCH_SHOWS_TOOL = {
-    "name": "search_shows",
-    "description": (
-        "Search Phish shows by US state or venue name. "
-        "Use for questions like 'how many shows in Minnesota', "
-        "'what venues has Phish played in Colorado', or "
-        "'all shows at Madison Square Garden'. "
-        "Provide state (2-letter abbreviation) OR venue name — not both. "
-        "Optionally filter by year."
-    ),
-    "input_schema": {
-        "type": "object",
-        "properties": {
-            "state": {
-                "type": "string",
-                "description": "2-letter US state abbreviation, e.g. 'MN' for Minnesota, 'CO' for Colorado, 'NY' for New York",
-            },
-            "venue": {
-                "type": "string",
-                "description": "Venue name, e.g. 'Madison Square Garden', 'Sphere', 'Red Rocks Amphitheatre'",
-            },
-            "year": {
-                "type": "string",
-                "description": "4-digit year to filter results, e.g. '2024'",
-            },
-        },
-        "required": [],
-    },
-}
 
 
 def _shows_from_setlistfm(venue: str) -> list[dict]:
@@ -165,11 +109,19 @@ def _shows_from_setlistfm(venue: str) -> list[dict]:
     return shows
 
 
+@tool
 def search_shows(
     state: Optional[str] = None,
     venue: Optional[str] = None,
     year: Optional[str] = None,
 ) -> dict:
+    """Search Phish shows by US state or venue name.
+
+    Use for questions like 'how many shows in Minnesota', 'what venues has Phish played in Colorado',
+    or 'all shows at Madison Square Garden'.
+    Provide state (2-letter abbreviation) OR venue name — not both.
+    Optionally filter by year.
+    """
     try:
         if venue:
             # phish.net venue-by-name endpoint is access-restricted; use setlist.fm instead
