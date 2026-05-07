@@ -1,31 +1,24 @@
 import json
-import anthropic
-from tools.setlistfm import TOOL_DEFINITION as SETLISTFM_TOOL, search_setlists
-from tools.phishnet import (
-    JAMCHARTS_TOOL, SONG_HISTORY_TOOL, SEARCH_SHOWS_TOOL,
-    get_jamcharts, get_song_history, search_shows,
-)
-from tools.discography import SEARCH_DISCOGRAPHY_TOOL, search_discography
-from tools.ihoz import GET_SONG_STATS_TOOL, get_song_stats
+from langchain_anthropic import ChatAnthropic
+from langchain_core.messages import HumanMessage, AIMessage, ToolMessage, SystemMessage
+from langgraph.graph import StateGraph, MessagesState, START, END
+from langgraph.prebuilt import ToolNode, tools_condition
 
-client = anthropic.Anthropic()
+from tools.setlistfm import search_setlists
+from tools.phishnet import get_jamcharts, get_song_history, search_shows
+from tools.discography import search_discography
+from tools.ihoz import get_song_stats
 
-TOOL_DISPATCH = {
-    "search_setlists": search_setlists,
-    "get_jamcharts": get_jamcharts,
-    "get_song_history": get_song_history,
-    "search_shows": search_shows,
-    "search_discography": search_discography,
-    "get_song_stats": get_song_stats,
-}
+LOCAL_TOOLS = [
+    search_setlists,
+    get_jamcharts,
+    get_song_history,
+    search_shows,
+    search_discography,
+    get_song_stats,
+]
 
 WEB_SEARCH_TOOL = {"type": "web_search_20250305", "name": "web_search", "max_uses": 3}
-
-TOOLS = [
-    SETLISTFM_TOOL, JAMCHARTS_TOOL, SONG_HISTORY_TOOL,
-    SEARCH_SHOWS_TOOL, SEARCH_DISCOGRAPHY_TOOL, GET_SONG_STATS_TOOL,
-    WEB_SEARCH_TOOL,
-]
 
 SYSTEM_PROMPT = (
     "You are PhishBot, an expert on Phish's concert history. "
@@ -44,49 +37,56 @@ SYSTEM_PROMPT = (
     "Use markdown formatting freely — tables, bold, bullet points. Do not use emojis."
 )
 
+_llm = ChatAnthropic(model="claude-sonnet-4-6", max_tokens=1024)
+_model = _llm.bind_tools(LOCAL_TOOLS + [WEB_SEARCH_TOOL])
+
+
+def _agent(state: MessagesState) -> dict:
+    messages = [SystemMessage(content=SYSTEM_PROMPT)] + state["messages"]
+    response = _model.invoke(messages)
+    return {"messages": [response]}
+
+
+_tool_node = ToolNode(LOCAL_TOOLS)
+
+_graph = StateGraph(MessagesState)
+_graph.add_node("agent", _agent)
+_graph.add_node("tools", _tool_node)
+_graph.add_edge(START, "agent")
+_graph.add_conditional_edges("agent", tools_condition)
+_graph.add_edge("tools", "agent")
+
+_app = _graph.compile()
+
 
 def run_query(question: str, history: list[dict] | None = None) -> dict:
-    messages = list(history or []) + [{"role": "user", "content": question}]
-    sources = []
-
-    while True:
-        response = client.messages.create(
-            model="claude-sonnet-4-6",
-            max_tokens=1024,
-            system=SYSTEM_PROMPT,
-            tools=TOOLS,
-            messages=messages,
-        )
-
-        # Track web search usage (handled server-side; appears as server_tool_use blocks)
-        for block in response.content:
-            if getattr(block, "type", None) == "server_tool_use" and getattr(block, "name", None) == "web_search":
-                sources.append("web")
-
-        if response.stop_reason == "tool_use":
-            tool_results = []
-            for block in response.content:
-                if block.type == "tool_use":
-                    tool_fn = TOOL_DISPATCH.get(block.name)
-                    if tool_fn is None:
-                        result = {"error": f"Unknown tool: {block.name}", "source": "agent"}
-                    else:
-                        result = tool_fn(**block.input)
-                    sources.append(result.get("source", block.name))
-                    tool_results.append({
-                        "type": "tool_result",
-                        "tool_use_id": block.id,
-                        "content": json.dumps(result),
-                    })
-            messages.append({"role": "assistant", "content": response.content})
-            messages.append({"role": "user", "content": tool_results})
-
-        elif response.stop_reason == "end_turn":
-            answer = next(
-                (block.text for block in response.content if hasattr(block, "text")),
-                "No answer generated.",
-            )
-            return {"answer": answer, "sources": list(set(sources))}
-
+    messages = []
+    for msg in (history or []):
+        if msg["role"] == "user":
+            messages.append(HumanMessage(content=msg["content"]))
         else:
-            return {"answer": "Unexpected stop reason from Claude.", "sources": []}
+            messages.append(AIMessage(content=msg["content"]))
+    messages.append(HumanMessage(content=question))
+
+    result = _app.invoke({"messages": messages})
+    final_messages = result["messages"]
+
+    answer = "No answer generated."
+    sources = set()
+
+    for msg in final_messages:
+        if isinstance(msg, ToolMessage):
+            try:
+                data = json.loads(msg.content)
+                if "source" in data:
+                    sources.add(data["source"])
+            except (json.JSONDecodeError, TypeError):
+                pass
+        elif isinstance(msg, AIMessage):
+            for tc in getattr(msg, "tool_calls", []):
+                if tc.get("name") == "web_search":
+                    sources.add("web")
+            if not getattr(msg, "tool_calls", []) and isinstance(msg.content, str) and msg.content:
+                answer = msg.content
+
+    return {"answer": answer, "sources": list(sources)}
