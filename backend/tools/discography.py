@@ -1,5 +1,7 @@
 from typing import Optional
 
+from langchain_core.tools import tool
+
 DISCOGRAPHY = [
     {
         "title": "The White Tape",
@@ -164,44 +166,18 @@ DISCOGRAPHY = [
     },
 ]
 
-SEARCH_DISCOGRAPHY_TOOL = {
-    "name": "search_discography",
-    "description": (
-        "Look up Phish studio albums and song origins. "
-        "Use 'song' to find which album a song appears on. "
-        "Use 'album' to get the tracklist and release year for an album. "
-        "Call with no parameters to list all studio albums. "
-        "Covers all studio releases from The White Tape (1984) through Sigma Oasis (2020)."
-    ),
-    "input_schema": {
-        "type": "object",
-        "properties": {
-            "song": {
-                "type": "string",
-                "description": "Song name to look up, e.g. 'Kill Devil Falls', 'Maze', 'First Tube'",
-            },
-            "album": {
-                "type": "string",
-                "description": "Album name to look up, e.g. 'Rift', 'Farmhouse', 'Joy'",
-            },
-        },
-        "required": [],
-    },
-}
 
-
+@tool
 def search_discography(
     song: Optional[str] = None,
     album: Optional[str] = None,
 ) -> dict:
-    """
-    Search the Phish studio discography.
+    """Look up Phish studio albums and song origins.
 
-    If `song` is provided, returns matching tracks across all albums.
-    If `album` is provided (and `song` is not), returns matching album records.
-    If neither is provided, returns a title/year index of all albums.
-
-    When both are provided, `song` takes precedence.
+    Use 'song' to find which album a song appears on.
+    Use 'album' to get the tracklist and release year for an album.
+    Call with no parameters to list all studio albums.
+    Covers all studio releases from The White Tape (1984) through Sigma Oasis (2020).
     """
     if song is not None:
         query = song.strip().lower()
