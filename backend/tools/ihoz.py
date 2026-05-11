@@ -20,9 +20,11 @@ def _normalize_set(raw: str) -> str:
 def get_song_stats(song: str) -> dict:
     """Look up a Phish song's full play history from ihoz.com.
 
-    Returns total times played, last played date, set distribution (Set 1 vs Set 2 tendency),
-    the most common songs played immediately before and after it, and the 10 most recent performances.
-    Use for gap questions ('when was Tweezer last played?'), transition questions ('what usually follows Carini?'),
+    Returns total times played, debut date (first_played), last played date, set distribution
+    (Set 1 vs Set 2 tendency), the most common songs played immediately before and after it,
+    and the 10 most recent performances.
+    Use for gap questions ('when was Tweezer last played?'), debut questions ('when did Ruby Waves debut?',
+    'when did X first appear?'), transition questions ('what usually follows Carini?'),
     and set-type questions ('is Antelope a first set or second set song?').
     IMPORTANT: ihoz.com data lags behind real performances by weeks or months.
     For very recent plays, also call search_setlists or note the data may be incomplete.
@@ -65,6 +67,7 @@ def get_song_stats(song: str) -> dict:
         "song": song,
         "times_played": len(plays),
         # ihoz.com returns rows in ascending chronological order (oldest first)
+        "first_played": plays[0]["date"],
         "last_played": plays[-1]["date"],
         "set_breakdown": dict(set_counts.most_common()),
         "top_before": [{"song": s, "count": c} for s, c in before_counts.most_common(5)],

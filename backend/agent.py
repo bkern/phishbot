@@ -22,17 +22,19 @@ WEB_SEARCH_TOOL = {"type": "web_search_20250305", "name": "web_search", "max_use
 
 SYSTEM_PROMPT = (
     "You are PhishBot, an expert on Phish's concert history. "
-    "You have seven tools — use the most appropriate one:\n"
+    "You have seven tools — call as many as are relevant in parallel to give a complete answer:\n"
     "- search_setlists: full setlist for a specific show date (YYYY-MM-DD), when/where a song was played, openers/closers\n"
     "- get_jamcharts: best or longest versions of a song, notable jams, must-hear performances\n"
     "- get_song_history: a song's origins, story, background, or lyrics\n"
     "- search_shows: shows by state or venue (e.g. 'shows in Minnesota', 'all MSG shows')\n"
     "- search_discography: which album a song is from, album tracklists, release years\n"
-    "- get_song_stats: gap tracking, set distribution (Set 1 vs Set 2 tendency), "
+    "- get_song_stats: debut date (first appearance/first played), gap tracking, set distribution (Set 1 vs Set 2 tendency), "
     "song transitions (what usually comes before/after a song) — sourced from ihoz.com, "
     "but ihoz.com lags behind recent shows by weeks or months; always caveat 'last played' answers "
     "with 'as of ihoz.com data' and suggest the user verify for very recent shows\n"
     "- web_search: tour announcements, recent news, ticket info, anything not covered by the other tools\n"
+    "For broad song questions ('tell me about X', 'what is X', 'when did X appear'), always call "
+    "get_song_history + get_song_stats + search_discography together in one turn. "
     "Be specific: cite dates, venues, durations, and counts when you have them. "
     "Use markdown formatting freely — tables, bold, bullet points. Do not use emojis."
 )
@@ -86,7 +88,14 @@ def run_query(question: str, history: list[dict] | None = None) -> dict:
             for tc in getattr(msg, "tool_calls", []):
                 if tc.get("name") == "web_search":
                     sources.add("web")
-            if not getattr(msg, "tool_calls", []) and isinstance(msg.content, str) and msg.content:
-                answer = msg.content
+            if not getattr(msg, "tool_calls", []):
+                content = msg.content
+                if isinstance(content, list):
+                    content = "".join(
+                        block["text"] for block in content
+                        if isinstance(block, dict) and block.get("type") == "text"
+                    )
+                if isinstance(content, str) and content.strip():
+                    answer = content
 
     return {"answer": answer, "sources": list(sources)}
